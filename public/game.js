@@ -4,7 +4,8 @@ const loginScreen = document.getElementById('loginScreen');
 const gameScreen = document.getElementById('gameScreen');
 const nicknameInput = document.getElementById('nickname');
 const roomCodeInput = document.getElementById('roomCode');
-const actionBtnIds = ['advertiseBtn', 'hireBtn', 'researchBtn', 'foreignBtn', 'loanBtn', 'ipoBtn'];
+// ★ 7번째 버튼인 paybackBtn 추가
+const actionBtnIds = ['advertiseBtn', 'hireBtn', 'researchBtn', 'foreignBtn', 'loanBtn', 'ipoBtn', 'paybackBtn'];
 
 let myRoomCode = '';
 
@@ -26,14 +27,16 @@ document.getElementById('readyBtn').onclick = () => {
     document.getElementById('readyBtn').disabled = true;
 };
 
-// ★ 클릭 시 데이터를 보내고 버튼을 즉시 잠가버리는 방어 코드 적용
-const actions = [ {id:'advertiseBtn', type:'advertise'}, {id:'hireBtn', type:'hire'}, {id:'researchBtn', type:'research'}, {id:'foreignBtn', type:'foreign'}, {id:'loanBtn', type:'loan'}, {id:'ipoBtn', type:'ipo'} ];
+// ★ 부채 상환 액션 연결
+const actions = [ 
+    {id:'advertiseBtn', type:'advertise'}, {id:'hireBtn', type:'hire'}, 
+    {id:'researchBtn', type:'research'}, {id:'foreignBtn', type:'foreign'}, 
+    {id:'loanBtn', type:'loan'}, {id:'ipoBtn', type:'ipo'}, {id:'paybackBtn', type:'payback'} 
+];
 actions.forEach(act => {
     const btn = document.getElementById(act.id);
     if (btn) btn.onclick = () => { 
-        if (myRoomCode) {
-            socket.emit('action', { roomCode: myRoomCode, actionType: act.type });
-        }
+        if (myRoomCode) socket.emit('action', { roomCode: myRoomCode, actionType: act.type });
     };
 });
 
@@ -59,8 +62,7 @@ socket.on('profileResult', (data) => {
     if (data.error) box.innerHTML = `<span style="color:#f43f5e; font-weight:bold;">${data.error}</span>`;
     else {
         const avg = data.rankCount > 0 ? (data.totalRank / data.rankCount).toFixed(1) : '-';
-        const achs = data.achievements && data.achievements.length > 0 ? data.achievements.map(a=>`<li>${a}</li>`).join('') : '<li>없음</li>';
-        box.innerHTML = `<p>👤 <strong>${data.nickname}</strong></p><p>🎮 ${data.gamesPlayed}회 | 👑 ${data.wins}회 | 평균 ${avg}위</p><p>📈 최고가치: <span class="value-text">${typeof data.highestValue === 'number' ? data.highestValue.toLocaleString() : data.highestValue}</span></p><div style="margin-top:10px; background:#020617; padding:10px; border-radius:6px; border:1px solid #1e293b;"><strong style="color:#fbbf24;">🎖️ 업적</strong><ul style="margin:5px 0; padding-left:20px;">${achs}</ul></div>`;
+        box.innerHTML = `<p>👤 <strong>${data.nickname}</strong></p><p>🎮 ${data.gamesPlayed}회 | 👑 ${data.wins}회 | 평균 ${avg}위</p><p>📈 최고가치: <span class="value-text">${typeof data.highestValue === 'number' ? data.highestValue.toLocaleString() : data.highestValue}</span></p>`;
     }
 });
 
@@ -70,7 +72,8 @@ socket.on('updateRoom', (room) => {
 
     document.getElementById('roomCodeDisplay').innerText = myRoomCode;
     document.getElementById('timerDisplay').innerText = room.timeRemaining;
-    document.getElementById('roundDisplay').innerText = Math.floor((240 - room.timeRemaining) / 30) + 1;
+    // ★ 5분(300초) 기준 라운드 계산으로 변경
+    document.getElementById('roundDisplay').innerText = Math.floor((300 - room.timeRemaining) / 30) + 1;
     document.getElementById('newsBox').innerText = room.news;
     
     const npcShareElem = document.getElementById('npcShareDisplay');
@@ -107,7 +110,6 @@ socket.on('updateRoom', (room) => {
             document.getElementById('advertiseBtn').innerHTML = `<span class="btn-title">📺 마케팅 (${(adCost/10000).toLocaleString()}만)</span><span class="btn-desc">브랜드+3, 점유율+1%</span>`;
             document.getElementById('hireBtn').innerHTML = `<span class="btn-title">👨 인재 영입 (${(hireCost/10000).toLocaleString()}만)</span><span class="btn-desc">직원 +5명</span>`;
 
-            // ★ 행동권이 0이 되면 모든 버튼을 시각적으로 완전히 잠가버립니다!
             if (me.actionsLeft <= 0) {
                 actionBtnIds.forEach(id => { const btn = document.getElementById(id); if(btn) {btn.disabled = true; btn.style.opacity = '0.4'; btn.style.cursor = 'not-allowed';} });
             } else {
