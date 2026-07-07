@@ -11,7 +11,6 @@ const io = new Server(server, { cors: { origin: "*" } });
 app.use(express.static(path.join(__dirname, 'public')));
 
 const rooms = {};
-// ★ 버그 해결의 핵심! 타이머 엔진을 방 데이터와 완전히 격리하는 전용 창고 생성
 const roomIntervals = {}; 
 const RANKINGS_FILE = './rankings.json';
 
@@ -130,7 +129,6 @@ io.on('connection', (socket) => {
             room.npcMarketShare = Math.max(0, 100 - ((Object.keys(room.players).length + 3) * 5));
 
             addLog(roomCode, '🚀 게임 시작! (제한시간 5분 / 1분마다 연말정산)');
-            // ★ 통신 오류 원인 해결: room 데이터 바깥에 안전하게 타이머 생성
             roomIntervals[roomCode] = setInterval(() => gameTick(roomCode), 1000);
         } catch(e) {}
     }
@@ -201,7 +199,7 @@ io.on('connection', (socket) => {
                 p.actionsLeft = 1; 
                 randomNews.effect(p); 
 
-                if(!p.isAI) {
+                if (!p.isAI) {
                     addLog(roomCode, `💵 [${p.nickname}] 결산: ${netIncome >= 0 ? "흑자" : "적자"} ${(netIncome/10000).toLocaleString()}만`);
                 }
 
@@ -222,7 +220,15 @@ io.on('connection', (socket) => {
                         if (Math.random() <= 0.7) { p.brand += 5; let gained = stealMarketShare(p.id, 2, roomCode); addLog(roomCode, `🤖 [${p.nickname}] R&D 성공! 점유율 +${gained}%`); }
                     } else if (randomAct === 'foreign' && p.cash >= 30000000) {
                         p.cash -= 30000000;
-                        if (Math.random() <= 0.5) { p.cash += 60000000; let gained = stealMarketShare(p.id, 5, roomCode); addLog(roomCode, `🤖 [${p.nickname}] 글로벌 대박! 현금+6천만, 점유율+${gained}%`); }
+                        // ★ AI 확률도 1.5% 패치 반영
+                        const aiSuccessProb = Math.min(0.95, 0.10 + (p.brand * 0.015));
+                        if (Math.random() <= aiSuccessProb) { 
+                            p.cash += 60000000; let gained = stealMarketShare(p.id, 5, roomCode); 
+                            addLog(roomCode, `🤖 [${p.nickname}] 글로벌 대박! 현금+6천만, 점유율+${gained}%`); 
+                        } else {
+                            p.brand = Math.max(0, p.brand - 3);
+                            addLog(roomCode, `🤖 [${p.nickname}] 글로벌 실패... 브랜드 손상(-3)`);
+                        }
                     } else if (randomAct === 'loan') {
                         p.cash += 50000000; p.debt += 50000000; addLog(roomCode, `🤖 [${p.nickname}] 자금 조달`);
                     } else if (randomAct === 'ipo' && calcValue(p) >= 300000000 && !p.listed) {
@@ -276,11 +282,27 @@ io.on('connection', (socket) => {
                         if (Math.random() <= 0.7) { p.brand += 5; let gained = stealMarketShare(p.id, 2, roomCode); addLog(roomCode, `🧪 [${p.nickname}] R&D 성공 (점유율+${gained}%)`); }
                         else addLog(roomCode, `🧪 [${p.nickname}] R&D 실패...`);
                     } else return socket.emit('errorMessage', '자본금 부족'); break;
+                
+                // ★ 1.5% 밸런스 패치 적용
                 case 'foreign':
-                    if (p.cash >= 30000000) { p.cash -= 30000000;
-                        if (Math.random() <= 0.5) { p.cash += 60000000; let gained = stealMarketShare(p.id, 5, roomCode); addLog(roomCode, `🌎 [${p.nickname}] 글로벌 대박! (점유율+${gained}%)`); }
-                        else addLog(roomCode, `🌎 [${p.nickname}] 글로벌 실패...`);
-                    } else return socket.emit('errorMessage', '자본금 부족'); break;
+                    if (p.cash >= 30000000) { 
+                        p.cash -= 30000000;
+                        
+                        // 기본 10% + 브랜드 1pt당 1.5% 추가 (최대 95% 제한)
+                        const successProbability = Math.min(0.95, 0.10 + (p.brand * 0.015)); 
+                        // 소수점 아래는 버리고 깔끔하게 %로 표시
+                        const percentageText = Math.floor(successProbability * 100); 
+
+                        if (Math.random() <= successProbability) { 
+                            p.cash += 60000000; 
+                            let gained = stealMarketShare(p.id, 5, roomCode); 
+                            addLog(roomCode, `🌎 [${p.nickname}] 글로벌 진출 대박!! 성공률 ${percentageText}%의 장벽을 뚫었습니다! (점유율+${gained}%)`); 
+                        } else {
+                            p.brand = Math.max(0, p.brand - 3);
+                            addLog(roomCode, `🌎 [${p.nickname}] 글로벌 진출 실패... 성공률 ${percentageText}%였으나 무리한 확장으로 브랜드 실추(-3)`);
+                        }
+                    } else return socket.emit('errorMessage', '자본금 부족 (3,000만 원 필요)'); break;
+                    
                 case 'loan':
                     p.cash += 50000000; p.debt += 50000000; addLog(roomCode, `🏦 [${p.nickname}] 자금 조달 (현금 확보)`); break;
                 case 'ipo':
@@ -298,7 +320,6 @@ io.on('connection', (socket) => {
             p.companyValue = calcValue(p);
             checkBankruptcy(p, roomCode); 
             
-            // ★ 이제 데이터에 꼬인 부분이 없으니 안심하고 통신!
             io.to(roomCode).emit('updateRoom', room);
         } catch (err) {
             console.error("Action Error:", err);
@@ -318,7 +339,6 @@ io.on('connection', (socket) => {
             const room = rooms[roomCode];
             if(!room) return;
             
-            // ★ 분리된 타이머 종료 처리
             clearInterval(roomIntervals[roomCode]);
             delete roomIntervals[roomCode];
             
