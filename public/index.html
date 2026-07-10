@@ -22,7 +22,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
         
         /* ★ 화면 고정 및 스크롤 방지 핵심 설정 */
-        body { background-color: var(--bg-color); color: var(--text-main); line-height: 1.4; overflow: hidden; height: 100vh; width: 100vw; display: flex; flex-direction: column; }
+        html, body { height: 100%; overflow: hidden; background-color: var(--bg-color); color: var(--text-main); line-height: 1.4; }
 
         /* 세련된 스크롤바 디자인 */
         ::-webkit-scrollbar { width: 6px; }
@@ -32,7 +32,7 @@
 
         /* 로그인 스크린 */
         #loginScreen {
-            display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw;
+            display: flex; justify-content: center; align-items: center; height: 100%; width: 100%;
             background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%); position: absolute; z-index: 100;
         }
         .login-card { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); padding: 40px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); text-align: center; width: 400px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
@@ -49,25 +49,25 @@
         .divider { color: var(--text-sub); margin: 15px 0; font-size: 0.85rem; }
 
         /* 인게임 스크린 구조 */
-        #gameScreen { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        #gameScreen { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
 
-        /* 상단 헤더 (높이 압축) */
+        /* 상단 헤더 (높이 고정) */
         header { background: var(--panel-bg); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
         .header-left h1 { font-size: 1.3rem; color: var(--accent-gold); }
         .header-right { display: flex; gap: 12px; font-size: 1rem; align-items: center; }
         .info-badge { background: #0f172a; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); }
         .time-badge { color: var(--accent-red); font-weight: bold; border-color: var(--accent-red); }
 
-        /* 게임 컨테이너 (화면 남는 공간을 모두 채움) */
-        .game-container { display: grid; grid-template-columns: 4fr 6fr; gap: 15px; width: 100%; max-width: 1500px; margin: 0 auto; padding: 15px 20px; flex-grow: 1; overflow: hidden; }
+        /* ★ 게임 컨테이너 (남은 공간을 모두 채우고 내부 스크롤 허용) */
+        .game-container { flex: 1 1 0; min-height: 0; display: grid; grid-template-columns: 4fr 6fr; gap: 15px; width: 100%; max-width: 1500px; margin: 0 auto; padding: 15px 20px; }
         
-        .left-col, .right-col { display: flex; flex-direction: column; gap: 15px; height: 100%; overflow: hidden; }
+        .left-col, .right-col { display: flex; flex-direction: column; gap: 10px; height: 100%; min-height: 0; }
         
-        /* 공통 패널 (여백 최적화) */
+        /* 공통 패널 */
         .panel { background: var(--panel-bg); border-radius: 10px; border: 1px solid var(--border-color); padding: 12px 15px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
-        .panel-title { font-size: 1.05rem; color: var(--accent-blue); border-bottom: 2px solid var(--border-color); padding-bottom: 6px; margin-bottom: 4px; font-weight: 600; }
+        .panel-title { font-size: 1.05rem; color: var(--accent-blue); border-bottom: 2px solid var(--border-color); padding-bottom: 6px; margin-bottom: 4px; font-weight: 600; flex-shrink: 0; }
 
-        /* 좌측: 내 기업 현황 (위아래 여백 압축) */
+        /* 좌측: 내 기업 현황 */
         .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 5px; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .stat-label { color: var(--text-sub); display: flex; align-items: center; gap: 8px; font-size: 0.95rem; }
         .stat-val { font-size: 1.05rem; font-weight: bold; }
@@ -75,9 +75,9 @@
         .cash-val { font-size: 1.4rem; color: var(--accent-green); font-weight: bold; line-height: 1.2; }
         .cash-flow { font-size: 0.9rem; color: var(--accent-red); margin-top: 2px; }
 
-        /* 좌측: 터미널 로그 (유동적으로 공간 채우기) */
-        .log-panel { flex-grow: 1; overflow: hidden; }
-        .terminal { background: #0b1120; border-radius: 6px; padding: 10px; flex-grow: 1; overflow-y: auto; border: 1px solid var(--border-color); font-family: 'Pretendard', monospace; font-size: 0.95rem; }
+        /* ★ 터미널 로그 (내부 스크롤 완벽 적용) */
+        .log-panel { flex: 1 1 0; min-height: 0; }
+        .terminal { flex: 1 1 0; min-height: 0; overflow-y: auto; background: #0b1120; border-radius: 6px; padding: 10px; border: 1px solid var(--border-color); font-family: 'Pretendard', monospace; font-size: 0.95rem; }
         .log-item { line-height: 1.5; border-bottom: 1px dashed rgba(255,255,255,0.1); padding: 6px 0; color: #cbd5e1; }
         .log-item:first-child { color: white; font-weight: bold; }
 
@@ -90,9 +90,9 @@
         .players-container { display: flex; flex-wrap: wrap; gap: 8px; }
         .player-chip { background: #0f172a; border: 1px solid var(--border-color); padding: 5px 10px; border-radius: 15px; font-size: 0.85rem; }
 
-        /* 우측: 경영 전략 버튼 (유동적 스크롤) */
-        .action-panel { flex-grow: 1; overflow: hidden; padding-bottom: 5px; }
-        .action-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex-grow: 1; padding-right: 5px; }
+        /* ★ 경영 전략 버튼 (내부 스크롤 완벽 적용) */
+        .action-panel { flex: 1 1 0; min-height: 0; padding-bottom: 10px; }
+        .action-list { flex: 1 1 0; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 5px; }
         .action-btn { 
             display: flex; justify-content: space-between; align-items: center; background: #0f172a; 
             border: 1px solid var(--border-color); padding: 12px 15px; border-radius: 6px; 
@@ -104,7 +104,7 @@
         .act-desc { color: var(--text-sub); font-size: 0.85rem; }
 
         /* 뉴스 배너 */
-        .news-banner { background: rgba(245, 158, 11, 0.1); color: var(--accent-gold); border: 1px solid var(--accent-gold); padding: 10px; border-radius: 6px; font-weight: bold; text-align: center; flex-shrink: 0; font-size: 0.95rem; }
+        .news-banner { flex-shrink: 0; background: rgba(245, 158, 11, 0.1); color: var(--accent-gold); border: 1px solid var(--accent-gold); padding: 10px; border-radius: 6px; font-weight: bold; text-align: center; font-size: 0.95rem; }
 
     </style>
 </head>
