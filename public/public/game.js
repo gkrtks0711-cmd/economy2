@@ -4,7 +4,6 @@ const loginScreen = document.getElementById('loginScreen');
 const gameScreen = document.getElementById('gameScreen');
 const nicknameInput = document.getElementById('nickname');
 const roomCodeInput = document.getElementById('roomCode');
-// ★ 7번째 버튼인 paybackBtn 추가
 const actionBtnIds = ['advertiseBtn', 'hireBtn', 'researchBtn', 'foreignBtn', 'loanBtn', 'ipoBtn', 'paybackBtn'];
 
 let myRoomCode = '';
@@ -23,11 +22,10 @@ document.getElementById('joinRoomBtn').onclick = () => {
 document.getElementById('readyBtn').onclick = () => {
     if(!myRoomCode) return;
     socket.emit('ready', myRoomCode);
-    document.getElementById('readyBtn').innerText = '준비 완료 대기 중...';
+    document.getElementById('readyBtn').innerText = '준비 대기 중...';
     document.getElementById('readyBtn').disabled = true;
 };
 
-// ★ 부채 상환 액션 연결
 const actions = [ 
     {id:'advertiseBtn', type:'advertise'}, {id:'hireBtn', type:'hire'}, 
     {id:'researchBtn', type:'research'}, {id:'foreignBtn', type:'foreign'}, 
@@ -40,31 +38,7 @@ actions.forEach(act => {
     };
 });
 
-document.getElementById('copyCodeBtn').onclick = () => {
-    if(myRoomCode) navigator.clipboard.writeText(myRoomCode).then(() => alert(`[ ${myRoomCode} ] 방 코드 복사 완료!`)).catch(()=>alert('복사 실패'));
-};
-
-document.getElementById('profileBtn').onclick = () => {
-    const target = document.getElementById('profileNickname').value.trim();
-    if(target) { document.getElementById('profileBox').innerHTML = `<span style="color:#64748b;">검색 중...</span>`; socket.emit('searchProfile', target); }
-};
-
-const manualModal = document.getElementById('manualModal');
-document.getElementById('openManualLobbyBtn').onclick = () => manualModal.style.display = 'flex';
-document.getElementById('openManualGameBtn').onclick = () => manualModal.style.display = 'flex';
-document.getElementById('closeManualBtn').onclick = () => manualModal.style.display = 'none';
-window.onclick = (event) => { if (event.target === manualModal) manualModal.style.display = 'none'; };
-
 socket.on('errorMessage', (msg) => alert(`[경고]\n${msg}`));
-
-socket.on('profileResult', (data) => {
-    const box = document.getElementById('profileBox');
-    if (data.error) box.innerHTML = `<span style="color:#f43f5e; font-weight:bold;">${data.error}</span>`;
-    else {
-        const avg = data.rankCount > 0 ? (data.totalRank / data.rankCount).toFixed(1) : '-';
-        box.innerHTML = `<p>👤 <strong>${data.nickname}</strong></p><p>🎮 ${data.gamesPlayed}회 | 👑 ${data.wins}회 | 평균 ${avg}위</p><p>📈 최고가치: <span class="value-text">${typeof data.highestValue === 'number' ? data.highestValue.toLocaleString() : data.highestValue}</span></p>`;
-    }
-});
 
 socket.on('updateRoom', (room) => {
     myRoomCode = room.roomCode;
@@ -72,8 +46,6 @@ socket.on('updateRoom', (room) => {
 
     document.getElementById('roomCodeDisplay').innerText = myRoomCode;
     document.getElementById('timerDisplay').innerText = room.timeRemaining;
-    // ★ 5분(300초) 기준 라운드 계산으로 변경
-    document.getElementById('roundDisplay').innerText = Math.floor((300 - room.timeRemaining) / 30) + 1;
     document.getElementById('newsBox').innerText = room.news;
     
     const npcShareElem = document.getElementById('npcShareDisplay');
@@ -82,8 +54,8 @@ socket.on('updateRoom', (room) => {
     const me = room.players[socket.id];
     if(me) {
         if (me.bankrupt) {
-            document.getElementById('myCompany').innerHTML = `<div style="color:#f43f5e; font-size:1.3rem; font-weight:bold; text-align:center; padding: 30px 10px;">☠️ 파산 (GAME OVER)</div>`;
-            actionBtnIds.forEach(id => { const btn = document.getElementById(id); if(btn) {btn.disabled = true; btn.style.opacity = '0.3'; btn.style.cursor = 'not-allowed';} });
+            document.getElementById('myCompany').innerHTML = `<div style="color:#ef4444; font-size:1.5rem; font-weight:bold; text-align:center; padding: 40px 10px;">☠️ 파산 (GAME OVER)</div>`;
+            actionBtnIds.forEach(id => { const btn = document.getElementById(id); if(btn) {btn.disabled = true;} });
         } else {
             const adCost = 5000000 + (me.marketShare * 300000);
             const hireCost = 7000000 + (Math.max(0, me.employees - 20) * 300000);
@@ -91,45 +63,83 @@ socket.on('updateRoom', (room) => {
             const expectedSalary = me.employees * 300000;
             const expectedInterest = me.debt * 0.04;
             const netFlow = expectedProfit - expectedSalary - expectedInterest;
-            const netColor = netFlow >= 0 ? '#10b981' : '#f43f5e';
+            const netColor = netFlow >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
             const netSign = netFlow > 0 ? '+' : '';
 
+            // 세련된 가로 정렬 UI 적용
             document.getElementById('myCompany').innerHTML = `
-                <div style="background:rgba(30,41,59,0.5); padding:10px; border-radius:6px; margin-bottom:10px;">
-                    <p style="margin:0 0 5px 0;">💰 <strong>보유 현금:</strong> <span class="money-text">${me.cash.toLocaleString()}</span></p>
-                    <p style="margin:0; font-size:0.85rem; color:${netColor};">↳ 턴당 예상 현금흐름: ${netSign}${netFlow.toLocaleString()} 원</p>
+                <div class="cash-box">
+                    <div style="color:var(--text-sub); font-size:1rem; text-align:left; margin-bottom:5px;">💰 보유 현금</div>
+                    <div class="cash-val">${me.cash.toLocaleString()} <span style="font-size:1.2rem; color:var(--text-main);">원</span></div>
+                    <div class="cash-flow" style="color:${netColor}">↳ 턴당 예상 흐름: ${netSign}${netFlow.toLocaleString()} 원</div>
                 </div>
-                <p>🏢 <strong>기업 가치:</strong> <span class="value-text">${me.companyValue.toLocaleString()}</span></p>
-                <p>👨 <strong>상주 임직원:</strong> <span>${me.employees} 명</span></p>
-                <p>⭐ <strong>브랜드 지수:</strong> <span>${me.brand} pt</span></p>
-                <p>📊 <strong>시장 점유율:</strong> <span>${me.marketShare} %</span></p>
-                <p>🏦 <strong>금융권 부채:</strong> <span class="${me.debt > 0 ? 'debt-text' : ''}">${me.debt.toLocaleString()}</span></p>
-                <p>⚡ <strong>작전권:</strong> <span style="color:#f43f5e; font-weight:bold;">${me.actionsLeft} / 1</span></p>
+                <div class="stat-row">
+                    <span class="stat-label">🏢 기업 가치:</span>
+                    <span class="stat-val" style="color:var(--accent-gold);">${me.companyValue.toLocaleString()} 원</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">👨 상주 임직원:</span>
+                    <span class="stat-val">${me.employees} 명</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">⭐ 브랜드 지수:</span>
+                    <span class="stat-val">${me.brand} pt</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">📊 시장 점유율:</span>
+                    <span class="stat-val">${me.marketShare} %</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">🏦 금융권 부채:</span>
+                    <span class="stat-val" style="color:${me.debt > 0 ? 'var(--accent-red)' : 'var(--text-main)'};">${me.debt.toLocaleString()} 원</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">⚡ 작전권 상태:</span>
+                    <span class="stat-val" style="color:${me.actionsLeft > 0 ? 'var(--accent-green)' : 'var(--accent-red)'};">${me.actionsLeft} / 1</span>
+                </div>
             `;
 
-            document.getElementById('advertiseBtn').innerHTML = `<span class="btn-title">📺 마케팅 (${(adCost/10000).toLocaleString()}만)</span><span class="btn-desc">브랜드+3, 점유율+1%</span>`;
-            document.getElementById('hireBtn').innerHTML = `<span class="btn-title">👨 인재 영입 (${(hireCost/10000).toLocaleString()}만)</span><span class="btn-desc">직원 +5명</span>`;
+            // 작전 버튼 가격 업데이트 (가로 바 형태에 맞춤)
+            document.getElementById('advertiseBtn').querySelector('.cost').innerText = `(${(adCost/10000).toLocaleString()}만)`;
+            document.getElementById('hireBtn').querySelector('.cost').innerText = `(${(hireCost/10000).toLocaleString()}만)`;
 
             if (me.actionsLeft <= 0) {
-                actionBtnIds.forEach(id => { const btn = document.getElementById(id); if(btn) {btn.disabled = true; btn.style.opacity = '0.4'; btn.style.cursor = 'not-allowed';} });
+                actionBtnIds.forEach(id => { const btn = document.getElementById(id); if(btn) {btn.disabled = true;} });
             } else {
-                actionBtnIds.forEach(id => { const btn = document.getElementById(id); if(btn) {btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';} });
+                actionBtnIds.forEach(id => { const btn = document.getElementById(id); if(btn) {btn.disabled = false;} });
             }
         }
     }
 
-    const renderCard = (p) => `<div class="player-card" style="${p.bankrupt ? 'opacity:0.4; border-color:#f43f5e;' : ''}"><div class="card-header"><strong style="${p.bankrupt ? 'text-decoration:line-through; color:#f43f5e;' : ''}">${p.nickname} ${p.bankrupt ? '[파산]' : ''}</strong><span>${!p.bankrupt && p.ready && room.status === 'waiting' ? '<span style="color:#10b981;">[READY]</span>' : ''}</span></div><div class="card-stats"><span>가치: ${p.companyValue.toLocaleString()}</span><span>점유율: ${p.marketShare}%</span></div></div>`;
-    document.getElementById('playersList').innerHTML = Object.values(room.players).filter(p => p.id !== socket.id).map(renderCard).join('') || '<div style="color:#475569;">타 서버 연결 대기 중...</div>';
-    document.getElementById('aiList').innerHTML = room.ais.map(renderCard).join('');
+    // 경쟁 기업 리스트 (간단한 칩 형태)
+    document.getElementById('playersList').innerHTML = Object.values(room.players)
+        .filter(p => p.id !== socket.id)
+        .map(p => `<div class="player-chip" style="${p.bankrupt ? 'opacity:0.3; text-decoration:line-through; color:var(--accent-red);' : ''}">
+            👤 ${p.nickname} ${!p.bankrupt && p.ready && room.status === 'waiting' ? '<span style="color:var(--accent-green);">[준비]</span>' : ''}
+        </div>`).join('') || '<span style="color:var(--text-sub);">다른 CEO를 기다리는 중...</span>';
 
+    // 시가총액 순위 (요청하신 대로 랭킹 + 점유율 표시)
     const active = [...Object.values(room.players), ...room.ais].filter(p => !p.bankrupt).sort((a,b) => b.companyValue - a.companyValue);
     const bankrupt = [...Object.values(room.players), ...room.ais].filter(p => p.bankrupt).sort((a,b) => a.companyValue - b.companyValue);
-    document.getElementById('rankingList').innerHTML = [...active, ...bankrupt].map((p, idx) => `<div class="rank-item ${idx < 3 && !p.bankrupt ? 'rank-' + (idx+1) : ''}" style="${p.bankrupt ? 'color:#f43f5e; opacity:0.6;' : ''}"><span style="${p.bankrupt ? 'text-decoration:line-through;' : ''}">${idx + 1}. ${p.nickname} ${p.bankrupt ? '[파산]' : ''}</span><span>${p.companyValue.toLocaleString()}</span></div>`).join('');
+    
+    document.getElementById('rankingList').innerHTML = [...active, ...bankrupt].map((p, idx) => `
+        <div class="rank-item ${idx === 0 && !p.bankrupt ? 'rank-1' : ''}" style="${p.bankrupt ? 'opacity:0.5; color:var(--accent-red);' : ''}">
+            <div>
+                <strong>${idx + 1}.</strong> <span style="${p.bankrupt ? 'text-decoration:line-through;' : ''}">${p.nickname}</span> ${p.bankrupt ? '[파산]' : ''}
+            </div>
+            <div>
+                <span>${p.companyValue.toLocaleString()} 원</span>
+                <span class="rank-share">(점유율 ${p.marketShare}%)</span>
+            </div>
+        </div>
+    `).join('');
+
+    // 터미널 로그 업데이트
     document.getElementById('logList').innerHTML = room.logs.map(l => `<div class="log-item">${l}</div>`).join('');
 });
 
 socket.on('gameEnded', ({ winner, ranking }) => {
-    let msg = `👑 게임 종료! 👑\n최종 승리: [${winner.nickname}]\n가치: ${winner.companyValue.toLocaleString()}원`;
+    let msg = `👑 게임 종료! 👑\n최종 승리: [${winner.nickname}]\n최종 가치: ${winner.companyValue.toLocaleString()}원`;
     if (winner.bankrupt) msg = `☠️ 생존자 없음! 전원 파산! ☠️`;
-    alert(msg); location.reload();
+    setTimeout(() => { alert(msg); location.reload(); }, 500);
 });

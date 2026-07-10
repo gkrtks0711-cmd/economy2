@@ -3,97 +3,202 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>최고의 기업 만들기 시뮬레이터</title>
+    <title>기업제국 ONLINE</title>
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css" />
-    <link rel="stylesheet" href="style.css">
+    <style>
+        /* 기본 테마 설정 (밝은 다크 테마) */
+        :root {
+            --bg-color: #0f172a; /* 딥 네이비 배경 */
+            --panel-bg: #1e293b; /* 패널 배경 */
+            --border-color: #334155;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-gold: #fbbf24;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); line-height: 1.5; overflow-x: hidden; }
+
+        /* 세련된 로그인 스크린 */
+        #loginScreen {
+            display: flex; justify-content: center; align-items: center; height: 100vh;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+        }
+        .login-card {
+            background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px);
+            padding: 50px 40px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);
+            text-align: center; width: 450px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .login-card h1 { color: var(--accent-gold); font-size: 2.2rem; margin-bottom: 10px; letter-spacing: 2px; }
+        .login-card p { color: var(--text-sub); margin-bottom: 30px; }
+        .input-group { margin-bottom: 15px; }
+        .input-group input {
+            width: 100%; padding: 15px; border-radius: 10px; border: 1px solid var(--border-color);
+            background: #0f172a; color: white; font-size: 1rem; outline: none; margin-bottom: 10px;
+        }
+        .input-group input:focus { border-color: var(--accent-blue); }
+        .btn { width: 100%; padding: 15px; border-radius: 10px; border: none; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-primary { background: var(--accent-blue); color: white; margin-bottom: 15px; }
+        .btn-primary:hover { background: #2563eb; }
+        .btn-secondary { background: transparent; border: 1px solid var(--accent-blue); color: var(--accent-blue); }
+        .btn-secondary:hover { background: rgba(59, 130, 246, 0.1); }
+        .divider { color: var(--text-sub); margin: 20px 0; font-size: 0.9rem; }
+
+        /* 게임 화면 레이아웃 (2단 구성) */
+        header { background: var(--panel-bg); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); }
+        .header-left h1 { font-size: 1.5rem; color: var(--accent-gold); }
+        .header-right { display: flex; gap: 20px; font-size: 1.1rem; }
+        .info-badge { background: #0f172a; padding: 8px 15px; border-radius: 8px; border: 1px solid var(--border-color); }
+        .time-badge { color: var(--accent-red); font-weight: bold; border-color: var(--accent-red); }
+
+        .game-container { display: grid; grid-template-columns: 4fr 6fr; gap: 25px; max-width: 1400px; margin: 25px auto; padding: 0 20px; }
+        .panel { background: var(--panel-bg); border-radius: 12px; border: 1px solid var(--border-color); padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .panel-title { font-size: 1.2rem; color: var(--accent-blue); border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 10px; font-weight: 600; }
+
+        /* 좌측: 내 기업 현황 (가로 배치 UI) */
+        .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .stat-label { color: var(--text-sub); display: flex; align-items: center; gap: 8px; font-size: 1.05rem; }
+        .stat-val { font-size: 1.1rem; font-weight: bold; }
+        .cash-box { background: rgba(16, 185, 129, 0.1); padding: 15px; border-radius: 10px; border: 1px solid rgba(16, 185, 129, 0.2); text-align: right; margin-bottom: 10px; }
+        .cash-val { font-size: 1.8rem; color: var(--accent-green); font-weight: bold; }
+        .cash-flow { font-size: 0.95rem; color: var(--accent-red); margin-top: 5px; }
+
+        /* 우측: 시가총액 순위 (점유율 추가) */
+        .rank-list { display: flex; flex-direction: column; gap: 8px; }
+        .rank-item { display: flex; justify-content: space-between; background: #0f172a; padding: 12px 15px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 1.05rem; }
+        .rank-1 { border-color: var(--accent-gold); box-shadow: 0 0 10px rgba(251, 191, 36, 0.2); }
+        .rank-share { color: var(--accent-gold); font-size: 0.95rem; margin-left: 10px; }
+
+        /* 우측: 경영 전략 버튼 (가로 바 형태) */
+        .action-list { display: flex; flex-direction: column; gap: 10px; }
+        .action-btn { 
+            display: flex; justify-content: space-between; align-items: center; background: #0f172a; 
+            border: 1px solid var(--border-color); padding: 15px 20px; border-radius: 8px; 
+            color: white; cursor: pointer; transition: 0.2s; text-align: left;
+        }
+        .action-btn:hover:not(:disabled) { background: #1e293b; border-color: var(--accent-blue); transform: translateX(5px); }
+        .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .act-title { font-weight: bold; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
+        .act-desc { color: var(--text-sub); font-size: 0.95rem; }
+
+        /* 터미널 로그 (가독성 향상) */
+        .terminal { 
+            background: #0b1120; border-radius: 8px; padding: 20px; height: 350px; overflow-y: auto; 
+            border: 1px solid var(--border-color); font-family: 'Pretendard', monospace;
+        }
+        .log-item { font-size: 1.15rem; line-height: 1.7; border-bottom: 1px dashed rgba(255,255,255,0.1); padding: 8px 0; color: #cbd5e1; }
+        .log-item:first-child { color: white; font-weight: bold; }
+
+        /* 뉴스 배너 */
+        .news-banner { background: rgba(245, 158, 11, 0.1); color: var(--accent-gold); border: 1px solid var(--accent-gold); padding: 15px; border-radius: 8px; font-weight: bold; text-align: center; }
+
+        /* 경쟁 기업 (소형) */
+        .players-container { display: flex; flex-wrap: wrap; gap: 10px; }
+        .player-chip { background: #0f172a; border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 20px; font-size: 0.9rem; }
+    </style>
 </head>
 <body>
+
     <div id="loginScreen">
-        <div class="glow-bg"></div>
-        <div class="card">
+        <div class="login-card">
             <h1>CORPORATE EMPIRE</h1>
-            <p class="subtitle">글로벌 경제 패권 전쟁</p>
-            <div class="input-group"><input type="text" id="nickname" placeholder="기업 이름 입력" autocomplete="off"><button id="createRoomBtn" class="btn-primary">신규 서버 개설</button></div>
-            <div class="divider"><span>OR</span></div>
-            <div class="input-group"><input type="text" id="roomCode" placeholder="입장 방 코드 입력" autocomplete="off"><button id="joinRoomBtn" class="btn-secondary">기존 서버 접속</button></div>
-            <button id="openManualLobbyBtn" class="btn-info">📖 작전 지침서 필독!</button>
+            <p>글로벌 경제 패권 전쟁에 오신 것을 환영합니다</p>
+            <div class="input-group">
+                <input type="text" id="nickname" placeholder="CEO 닉네임 입력 (예: 워렌버핏)" autocomplete="off">
+                <button id="createRoomBtn" class="btn btn-primary">새로운 서버 개설하기</button>
+            </div>
+            <div class="divider">OR</div>
+            <div class="input-group">
+                <input type="text" id="roomCode" placeholder="입장할 방 코드 입력" autocomplete="off">
+                <button id="joinRoomBtn" class="btn btn-secondary">기존 서버 접속하기</button>
+            </div>
         </div>
     </div>
 
     <div id="gameScreen" style="display:none;">
         <header>
-            <div class="header-logo"><h1>CORPORATE EMPIRE</h1><span class="badge">LIVE SECURE</span><button id="openManualGameBtn" class="btn-info-small">📖 지침서</button></div>
-            <div id="topInfo">
-                <div class="info-box">SERVER <span>#<span id="roomCodeDisplay">-</span></span> <button id="copyCodeBtn" class="copy-btn">📋 복사</button></div>
-                <div class="info-box" style="border-color:#fbbf24; color:#fbbf24;">NPC 점유율 <span style="color:#f8fafc;"><span id="npcShareDisplay">0</span>%</span></div>
-                <div class="info-box">ROUND <span><span id="roundDisplay">0</span></span></div>
-                <!-- ★ 타이머 300초(5분)로 변경 -->
-                <div class="info-box time-box">REMAINING <span><span id="timerDisplay">300</span>s</span></div>
+            <div class="header-left">
+                <h1>🏢 기업제국 ONLINE</h1>
+            </div>
+            <div class="header-right">
+                <div class="info-badge">서버: <strong id="roomCodeDisplay" style="color:var(--accent-blue);">-</strong></div>
+                <div class="info-badge" style="color:var(--text-sub);">남은 시장 점유율: <strong id="npcShareDisplay" style="color:white;">-</strong>%</div>
+                <div class="info-badge time-badge">남은 시간: <span id="timerDisplay">300</span>초</div>
+                <button id="readyBtn" class="btn btn-primary" style="padding: 8px 20px; margin: 0; width: auto;">준비 완료</button>
             </div>
         </header>
-        <main>
-            <section class="leftPanel">
-                <div class="panel highlight-panel"><h2>내 기업 현황</h2><div id="myCompany" class="data-container">대기 중...</div></div>
-                <div class="panel action-panel">
-                    <h2>경영 전략 실행 (턴당 1회)</h2>
-                    <button id="readyBtn" class="btn-ready">게임 준비 완료</button>
-                    <div class="action-grid">
-                        <button id="advertiseBtn"><span class="btn-title">📺 마케팅</span><span class="btn-desc">브랜드+3, 점유율+1%</span></button>
-                        <button id="hireBtn"><span class="btn-title">👨 인재 영입</span><span class="btn-desc">직원 +5명 합류</span></button>
-                        <button id="researchBtn"><span class="btn-title">🧪 R&D (1,000만)</span><span class="btn-desc">70% 성공시 점유율+2%</span></button>
-                        <button id="foreignBtn"><span class="btn-title">🌎 해외진출 (3,000만)</span><span class="btn-desc">50% 대박시 점유율+5%</span></button>
-                        <button id="loanBtn"><span class="btn-title">🏦 자금 조달</span><span class="btn-desc">현금+5천만 (턴당 이자 4%)</span></button>
-                        <!-- ★ 부채 상환 버튼 추가 -->
-                        <button id="paybackBtn"><span class="btn-title">💸 부채 상환 (5,000만)</span><span class="btn-desc">이자를 없애고 부채 탕감</span></button>
-                        <button id="ipoBtn"><span class="btn-title">📈 IPO 상장 (가치 3억↑)</span><span class="btn-desc">1회 한정 자본+1억, 브랜드+5</span></button>
+
+        <div class="game-container">
+            
+            <div class="left-col">
+                <div class="panel">
+                    <div class="panel-title">내 기업 현황</div>
+                    <div id="myCompany">
+                        <div style="color:var(--text-sub); text-align:center; padding: 20px;">서버 연결 대기 중...</div>
                     </div>
                 </div>
-                <div class="panel news-panel"><h2>글로벌 경제 속보</h2><div id="newsBox" class="news-ticker">수신 중...</div></div>
-            </section>
-            <section class="centerPanel">
-                <div class="panel"><h2>경쟁 기업 (Players)</h2><div id="playersList" class="list-container"></div></div>
-                <div class="panel"><h2>시장 방해 요소 (AI)</h2><div id="aiList" class="list-container"></div></div>
-            </section>
-            <section class="rightPanel">
-                <div class="panel"><h2>🏆 실시간 시가총액 순위</h2><div id="rankingList" class="ranking-container"></div></div>
-                <div class="panel">
-                    <h2>👤 CEO 데이터베이스</h2>
-                    <div class="search-bar"><input type="text" id="profileNickname" placeholder="이름 검색"><button id="profileBtn">Search</button></div>
-                    <div id="profileBox" class="profile-container">검색 대기 중</div>
-                </div>
-                <div class="panel log-panel"><h2>📜 터미널 로그</h2><div id="logList" class="terminal"></div></div>
-            </section>
-        </main>
-    </div>
 
-    <div id="manualModal" class="modal-overlay" style="display:none;">
-        <div class="modal-content">
-            <button id="closeManualBtn" class="close-btn">&times;</button>
-            <h2>📜 4대 핵심 경영 지침서 (필독)</h2>
-            <div class="manual-body">
-                <h3>1. 제한시간 5분과 연말정산</h3>
-                <ul>
-                    <li>게임은 <strong>총 5분</strong> 동안 진행되며 기업 가치 10억에 도달하면 즉시 승리합니다.</li>
-                    <li>매 1분(60초)이 경과할 때마다 <strong>내 기업가치의 5%가 현금 보너스(배당금)로 즉시 지급</strong>됩니다! 기업을 크게 키울수록 연말 보너스도 기하급수적으로 늘어납니다.</li>
-                </ul>
-                <h3>2. 현금 흐름과 파산 (Cash Flow)</h3>
-                <ul>
-                    <li>매 턴마다 <strong>직원 1명당 30만 원의 월급</strong>이 빠져나가고, <strong>점유율 1%당 50만 원의 영업이익</strong>이 들어옵니다.</li>
-                    <li>현금이나 기업가치가 <strong>-1억 원 이하</strong>로 떨어지면 즉시 <span style="color:#f43f5e; font-weight:bold;">파산(게임오버)</span> 처리됩니다!</li>
-                </ul>
-                <h3>3. 자금 조달과 부채 상환</h3>
-                <ul>
-                    <li>위기 상황 시 <strong>자금 조달</strong> 버튼으로 5,000만 원의 현금을 끌어올 수 있지만, 매 턴마다 악랄한 이자(4%)가 빠져나갑니다.</li>
-                    <li>현금이 충분히 모였다면 <strong>부채 상환</strong> 버튼을 눌러 이자의 늪에서 벗어날 수 있습니다.</li>
-                </ul>
-                <h3>4. 비용 누진세와 제로섬 시장</h3>
-                <ul>
-                    <li>내 점유율이 높아질수록 <strong>마케팅 비용도 기하급수적으로 비싸집니다.</strong></li>
-                    <li>초기 <strong>NPC 점유율 파이</strong>가 바닥나면, 마케팅/R&D 성공 시 <strong>다른 기업의 점유율을 강제로 뺏어옵니다!</strong></li>
-                </ul>
+                <div class="panel">
+                    <div class="panel-title">터미널 로그</div>
+                    <div id="logList" class="terminal"></div>
+                </div>
             </div>
+
+            <div class="right-col">
+                
+                <div class="panel">
+                    <div class="panel-title">🏆 실시간 시가총액 순위</div>
+                    <div id="rankingList" class="rank-list"></div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-title">🤝 현재 접속중인 CEO (경쟁 기업)</div>
+                    <div id="playersList" class="players-container"></div>
+                </div>
+
+                <div class="panel">
+                    <div class="panel-title">⚡ 경영 전략 실행 (턴당 1회)</div>
+                    <div class="action-list">
+                        <button id="advertiseBtn" class="action-btn">
+                            <span class="act-title">📺 마케팅 <span class="cost" style="color:var(--accent-red); font-size:0.9rem;">(비용 계산 중)</span></span>
+                            <span class="act-desc">브랜드+3, 점유율+1%</span>
+                        </button>
+                        <button id="hireBtn" class="action-btn">
+                            <span class="act-title">👨 인재 영입 <span class="cost" style="color:var(--accent-red); font-size:0.9rem;">(비용 계산 중)</span></span>
+                            <span class="act-desc">직원 +5명</span>
+                        </button>
+                        <button id="researchBtn" class="action-btn">
+                            <span class="act-title">🧪 R&D 투자 <span class="cost" style="color:var(--accent-red); font-size:0.9rem;">(1,000만)</span></span>
+                            <span class="act-desc">70% 성공시 점유율+2%</span>
+                        </button>
+                        <button id="foreignBtn" class="action-btn">
+                            <span class="act-title">🌎 해외 진출 <span class="cost" style="color:var(--accent-red); font-size:0.9rem;">(3,000만)</span></span>
+                            <span class="act-desc">확률 성공시 현금 대박 & 점유율+5%</span>
+                        </button>
+                        <button id="loanBtn" class="action-btn">
+                            <span class="act-title">🏦 자금 조달</span>
+                            <span class="act-desc">현금+5천만 (턴당 이자 4%)</span>
+                        </button>
+                        <button id="paybackBtn" class="action-btn">
+                            <span class="act-title">💸 부채 상환 <span class="cost" style="color:var(--accent-red); font-size:0.9rem;">(5,000만)</span></span>
+                            <span class="act-desc">이자를 없애고 부채 탕감</span>
+                        </button>
+                        <button id="ipoBtn" class="action-btn">
+                            <span class="act-title">📈 IPO 상장</span>
+                            <span class="act-desc">가치 3억↑ 1회 한정 (자본+1억)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="newsBox" class="news-banner">글로벌 경제 속보 수신 대기 중...</div>
+            </div>
+
         </div>
     </div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script src="game.js"></script>
 </body>

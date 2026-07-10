@@ -1,0 +1,61 @@
+{
+  "players": {
+    "박찬욱": {
+      "gamesPlayed": 1,
+      "wins": 1,
+      "highestValue": 1008000000,
+      "totalRank": 1,
+      "rankCount": 1,
+      "achievements": [
+        "VALUE_200M",
+        "🏆 FIRST_WIN (첫 승리)",
+        "💎 VALUE_200M (기업가치 2억)",
+        "👑 VALUE_500M (기업가치 5억)",
+        "📊 MARKET_30 (점유율 30%)"
+      ]
+    },
+    "김재진": {
+      "gamesPlayed": 1,
+      "wins": 0,
+      "highestValue": 253000000,
+      "totalRank": 4,
+      "rankCount": 1,
+      "achievements": [
+        "💎 VALUE_200M (기업가치 2억)"
+      ]
+    },
+    "ㅇ": {
+      "gamesPlayed": 1,
+      "wins": 0,
+      "highestValue": 294200000,
+      "totalRank": 3,
+      "rankCount": 1,
+      "achievements": [
+        "💎 VALUE_200M (기업가치 2억)",
+        "☠️ BANKRUPT (파산 경험)"
+      ]
+    },
+    "ㄴ": {
+      "gamesPlayed": 2,
+      "wins": 0,
+      "highestValue": 233500000,
+      "totalRank": 6,
+      "rankCount": 2,
+      "achievements": [
+        "☠️ BANKRUPT (파산 경험)",
+        "💎 VALUE_200M (기업가치 2억)"
+      ]
+    },
+    "Q": {
+      "gamesPlayed": 1,
+      "wins": 0,
+      "highestValue": 215000000,
+      "totalRank": 4,
+      "rankCount": 1,
+      "achievements": [
+        "💎 VALUE_200M (기업가치 2억)",
+        "☠️ BANKRUPT (파산 경험)"
+      ]
+    }
+  }
+}
