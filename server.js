@@ -128,7 +128,7 @@ io.on('connection', (socket) => {
             room.ais = createAIs();
             room.npcMarketShare = Math.max(0, 100 - ((Object.keys(room.players).length + 3) * 5));
 
-            addLog(roomCode, '🚀 게임 시작! (제한시간 5분 / 1분마다 연말정산)');
+            addLog(roomCode, '🚀 게임 시작! (제한시간 5분 무제한 스케일 / 1분마다 연말정산)');
             roomIntervals[roomCode] = setInterval(() => gameTick(roomCode), 1000);
         } catch(e) {}
     }
@@ -154,10 +154,10 @@ io.on('connection', (socket) => {
                 });
             }
             
-            const overBillion = allEntities.find(p => p.companyValue >= 1000000000);
             const activePlayers = Object.values(room.players).filter(p => !p.bankrupt);
 
-            if (room.timeRemaining <= 0 || overBillion || activePlayers.length === 0) {
+            // ★ 10억 도달 시 즉시 종료(overBillion) 조건 제거! 오직 시간 종료 혹은 전원 파산 시에만 끝남
+            if (room.timeRemaining <= 0 || activePlayers.length === 0) {
                 endGame(roomCode); return;
             }
 
@@ -220,7 +220,6 @@ io.on('connection', (socket) => {
                         if (Math.random() <= 0.7) { p.brand += 5; let gained = stealMarketShare(p.id, 2, roomCode); addLog(roomCode, `🤖 [${p.nickname}] R&D 성공! 점유율 +${gained}%`); }
                     } else if (randomAct === 'foreign' && p.cash >= 30000000) {
                         p.cash -= 30000000;
-                        // ★ AI 확률도 1.5% 패치 반영
                         const aiSuccessProb = Math.min(0.95, 0.10 + (p.brand * 0.015));
                         if (Math.random() <= aiSuccessProb) { 
                             p.cash += 60000000; let gained = stealMarketShare(p.id, 5, roomCode); 
@@ -282,27 +281,21 @@ io.on('connection', (socket) => {
                         if (Math.random() <= 0.7) { p.brand += 5; let gained = stealMarketShare(p.id, 2, roomCode); addLog(roomCode, `🧪 [${p.nickname}] R&D 성공 (점유율+${gained}%)`); }
                         else addLog(roomCode, `🧪 [${p.nickname}] R&D 실패...`);
                     } else return socket.emit('errorMessage', '자본금 부족'); break;
-                
-                // ★ 1.5% 밸런스 패치 적용
                 case 'foreign':
                     if (p.cash >= 30000000) { 
                         p.cash -= 30000000;
-                        
-                        // 기본 10% + 브랜드 1pt당 1.5% 추가 (최대 95% 제한)
                         const successProbability = Math.min(0.95, 0.10 + (p.brand * 0.015)); 
-                        // 소수점 아래는 버리고 깔끔하게 %로 표시
                         const percentageText = Math.floor(successProbability * 100); 
 
                         if (Math.random() <= successProbability) { 
                             p.cash += 60000000; 
                             let gained = stealMarketShare(p.id, 5, roomCode); 
-                            addLog(roomCode, `🌎 [${p.nickname}] 글로벌 진출 대박!! 성공률 ${percentageText}%의 장벽을 뚫었습니다! (점유율+${gained}%)`); 
+                            addLog(roomCode, `🌎 [${p.nickname}] 글로벌 진출 대박!! 성공률 ${percentageText}% 돌파! (점유율+${gained}%)`); 
                         } else {
                             p.brand = Math.max(0, p.brand - 3);
-                            addLog(roomCode, `🌎 [${p.nickname}] 글로벌 진출 실패... 성공률 ${percentageText}%였으나 무리한 확장으로 브랜드 실추(-3)`);
+                            addLog(roomCode, `🌎 [${p.nickname}] 글로벌 진출 실패... 성공률 ${percentageText}%였으나 브랜드 실추(-3)`);
                         }
                     } else return socket.emit('errorMessage', '자본금 부족 (3,000만 원 필요)'); break;
-                    
                 case 'loan':
                     p.cash += 50000000; p.debt += 50000000; addLog(roomCode, `🏦 [${p.nickname}] 자금 조달 (현금 확보)`); break;
                 case 'ipo':
@@ -319,7 +312,6 @@ io.on('connection', (socket) => {
             p.actionsLeft = 0;
             p.companyValue = calcValue(p);
             checkBankruptcy(p, roomCode); 
-            
             io.to(roomCode).emit('updateRoom', room);
         } catch (err) {
             console.error("Action Error:", err);

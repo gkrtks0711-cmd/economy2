@@ -1,11 +1,11 @@
 {
   "players": {
     "박찬욱": {
-      "gamesPlayed": 1,
-      "wins": 1,
-      "highestValue": 1008000000,
-      "totalRank": 1,
-      "rankCount": 1,
+      "gamesPlayed": 2,
+      "wins": 2,
+      "highestValue": 1086450000,
+      "totalRank": 2,
+      "rankCount": 2,
       "achievements": [
         "VALUE_200M",
         "🏆 FIRST_WIN (첫 승리)",
