@@ -4,7 +4,7 @@ const loginScreen = document.getElementById('loginScreen');
 const gameScreen = document.getElementById('gameScreen');
 const nicknameInput = document.getElementById('nickname');
 const roomCodeInput = document.getElementById('roomCode');
-const actionBtnIds = ['advertiseBtn', 'hireBtn', 'researchBtn', 'foreignBtn', 'loanBtn', 'ipoBtn', 'paybackBtn'];
+const actionBtnIds = ['advertiseBtn', 'hireBtn', 'researchBtn', 'foreignBtn', 'loanBtn', 'ipoBtn', 'paybackBtn', 'passBtn'];
 
 let myRoomCode = '';
 
@@ -29,7 +29,8 @@ document.getElementById('readyBtn').onclick = () => {
 const actions = [ 
     {id:'advertiseBtn', type:'advertise'}, {id:'hireBtn', type:'hire'}, 
     {id:'researchBtn', type:'research'}, {id:'foreignBtn', type:'foreign'}, 
-    {id:'loanBtn', type:'loan'}, {id:'ipoBtn', type:'ipo'}, {id:'paybackBtn', type:'payback'} 
+    {id:'loanBtn', type:'loan'}, {id:'ipoBtn', type:'ipo'}, {id:'paybackBtn', type:'payback'},
+    {id:'passBtn', type:'pass'} 
 ];
 actions.forEach(act => {
     const btn = document.getElementById(act.id);
@@ -38,7 +39,14 @@ actions.forEach(act => {
     };
 });
 
-socket.on('errorMessage', (msg) => alert(`[경고]\n${msg}`));
+socket.on('errorMessage', (msg) => {
+    const toast = document.getElementById('errorToast');
+    if (toast) {
+        toast.innerHTML = `⚠️ ${msg}`;
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 2500); 
+    }
+});
 
 socket.on('updateRoom', (room) => {
     myRoomCode = room.roomCode;
@@ -46,7 +54,18 @@ socket.on('updateRoom', (room) => {
 
     document.getElementById('roomCodeDisplay').innerText = myRoomCode;
     document.getElementById('timerDisplay').innerText = room.timeRemaining;
-    document.getElementById('newsBox').innerText = room.news;
+    
+    const newsBox = document.getElementById('newsBox');
+    newsBox.innerText = room.news;
+    if (room.news.includes('🚨')) {
+        newsBox.style.backgroundColor = 'rgba(239, 68, 68, 0.2)'; 
+        newsBox.style.borderColor = 'var(--accent-red)';
+        newsBox.style.color = 'var(--accent-red)';
+    } else {
+        newsBox.style.backgroundColor = 'rgba(245, 158, 11, 0.08)';
+        newsBox.style.borderColor = 'rgba(245, 158, 11, 0.3)';
+        newsBox.style.color = 'var(--accent-gold)';
+    }
     
     const npcShareElem = document.getElementById('npcShareDisplay');
     if (npcShareElem) npcShareElem.innerText = room.npcMarketShare;
@@ -107,7 +126,6 @@ socket.on('updateRoom', (room) => {
                 actionBtnIds.forEach(id => { const btn = document.getElementById(id); if(btn) {btn.disabled = false;} });
             }
 
-            // ★ 해외진출 쿨다운 실시간 비활성화 및 텍스트 동적 렌더링
             const fBtn = document.getElementById('foreignBtn');
             if (fBtn) {
                 const fCost = fBtn.querySelector('.cost');

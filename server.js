@@ -27,7 +27,8 @@ function createAIs() {
     return aiNames.map((name, idx) => ({
         id: `ai_${idx}`, nickname: name, isAI: true,
         cash: 100000000, employees: 20, brand: 10, marketShare: 5, debt: 0, listed: false,
-        companyValue: 200000000, actionsLeft: 1, researchSuccess: 0, bankrupt: false
+        companyValue: 200000000, actionsLeft: 1, researchSuccess: 0, bankrupt: false,
+        foreignCooldown: 0 
     }));
 }
 
@@ -104,7 +105,8 @@ io.on('connection', (socket) => {
         rooms[roomCode].players[socket.id] = {
             id: socket.id, nickname, isAI: false,
             cash: 100000000, employees: 20, brand: 10, marketShare: 5, debt: 0, listed: false,
-            companyValue: 200000000, actionsLeft: 1, researchSuccess: 0, ready: false, bankrupt: false
+            companyValue: 200000000, actionsLeft: 1, researchSuccess: 0, ready: false, bankrupt: false,
+            foreignCooldown: 0 
         };
         io.to(roomCode).emit('updateRoom', rooms[roomCode]);
     }
@@ -128,7 +130,7 @@ io.on('connection', (socket) => {
             room.ais = createAIs();
             room.npcMarketShare = Math.max(0, 100 - ((Object.keys(room.players).length + 3) * 5));
 
-            addLog(roomCode, '🚀 게임 시작! (제한시간 5분 무제한 스케일 / 1분마다 연말정산)');
+            addLog(roomCode, '🚀 게임 시작! (제한시간 5분 / 1분마다 연말정산)');
             roomIntervals[roomCode] = setInterval(() => gameTick(roomCode), 1000);
         } catch(e) {}
     }
@@ -156,7 +158,6 @@ io.on('connection', (socket) => {
             
             const activePlayers = Object.values(room.players).filter(p => !p.bankrupt);
 
-            // ★ 10억 도달 시 즉시 종료(overBillion) 조건 제거! 오직 시간 종료 혹은 전원 파산 시에만 끝남
             if (room.timeRemaining <= 0 || activePlayers.length === 0) {
                 endGame(roomCode); return;
             }
@@ -174,12 +175,21 @@ io.on('connection', (socket) => {
             const room = rooms[roomCode];
             if (!room) return;
             
-            const newsEvents = [
+            let newsEvents = [
                 { text: '글로벌 한류 열풍 (모든 생존 기업 브랜드 +3)', effect: p => p.brand += 3 },
                 { text: '정부 중소기업 지원 (모든 생존 기업 자본금 +1,000만)', effect: p => p.cash += 10000000 },
                 { text: '글로벌 경제 위기 (모든 생존 기업 자본금 -500만)', effect: p => p.cash -= 5000000 },
                 { text: '최저임금 대폭 인상 (모든 생존 기업 세금 -800만)', effect: p => p.cash -= 8000000 }
             ];
+
+            if (room.timeRemaining <= 150) {
+                newsEvents.push(
+                    { text: '🚨 [블랙스완] 전염병(코로나) 창궐! (전 기업 현금 반토막, 점유율 -2%)', effect: p => { p.cash = Math.floor(p.cash / 2); p.marketShare = Math.max(0, p.marketShare - 2); } },
+                    { text: '🚨 [금융쇼크] 기준금리 10% 폭등! (부채 있는 기업 즉시 현금 -5,000만)', effect: p => { if(p.debt > 0) p.cash -= 50000000; } },
+                    { text: '🚨 [대공황] 글로벌 증시 대폭락! (모든 기업 브랜드 -5, 직원 5명 강제 해고)', effect: p => { p.brand = Math.max(0, p.brand - 5); p.employees = Math.max(0, p.employees - 5); } }
+                );
+            }
+
             const randomNews = newsEvents[Math.floor(Math.random() * newsEvents.length)];
             room.news = randomNews.text;
             addLog(roomCode, `📰 뉴스: ${randomNews.text}`);
@@ -198,6 +208,8 @@ io.on('connection', (socket) => {
                 p.cash += netIncome;
                 p.actionsLeft = 1; 
                 randomNews.effect(p); 
+
+                if (p.foreignCooldown > 0) p.foreignCooldown--;
 
                 if (!p.isAI) {
                     addLog(roomCode, `💵 [${p.nickname}] 결산: ${netIncome >= 0 ? "흑자" : "적자"} ${(netIncome/10000).toLocaleString()}만`);
@@ -218,9 +230,10 @@ io.on('connection', (socket) => {
                     } else if (randomAct === 'research' && p.cash >= 10000000) {
                         p.cash -= 10000000;
                         if (Math.random() <= 0.7) { p.brand += 5; let gained = stealMarketShare(p.id, 2, roomCode); addLog(roomCode, `🤖 [${p.nickname}] R&D 성공! 점유율 +${gained}%`); }
-                    } else if (randomAct === 'foreign' && p.cash >= 30000000) {
+                    } else if (randomAct === 'foreign' && p.cash >= 30000000 && p.foreignCooldown <= 0) {
                         p.cash -= 30000000;
-                        const aiSuccessProb = Math.min(0.95, 0.10 + (p.brand * 0.015));
+                        p.foreignCooldown = 3; 
+                        const aiSuccessProb = Math.min(0.80, 0.10 + (p.brand * 0.005));
                         if (Math.random() <= aiSuccessProb) { 
                             p.cash += 60000000; let gained = stealMarketShare(p.id, 5, roomCode); 
                             addLog(roomCode, `🤖 [${p.nickname}] 글로벌 대박! 현금+6천만, 점유율+${gained}%`); 
@@ -282,9 +295,11 @@ io.on('connection', (socket) => {
                         else addLog(roomCode, `🧪 [${p.nickname}] R&D 실패...`);
                     } else return socket.emit('errorMessage', '자본금 부족'); break;
                 case 'foreign':
+                    if (p.foreignCooldown > 0) return socket.emit('errorMessage', `해외진출은 냉각 시간이 필요합니다. (${p.foreignCooldown}턴 뒤 가능)`);
                     if (p.cash >= 30000000) { 
                         p.cash -= 30000000;
-                        const successProbability = Math.min(0.95, 0.10 + (p.brand * 0.015)); 
+                        p.foreignCooldown = 3; 
+                        const successProbability = Math.min(0.80, 0.10 + (p.brand * 0.005)); 
                         const percentageText = Math.floor(successProbability * 100); 
 
                         if (Math.random() <= successProbability) { 
@@ -307,6 +322,9 @@ io.on('connection', (socket) => {
                         p.cash -= 50000000; p.debt -= 50000000;
                         addLog(roomCode, `💸 [${p.nickname}] 부채 상환 (-5천만)`);
                     } else return socket.emit('errorMessage', '현금이 5,000만 원 이상 있어야 상환할 수 있습니다.'); break;
+                case 'pass':
+                    addLog(roomCode, `⏩ [${p.nickname}] 이번 턴은 작전을 실행하지 않고 대기합니다.`);
+                    break;
             }
 
             p.actionsLeft = 0;
