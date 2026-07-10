@@ -66,7 +66,6 @@ socket.on('updateRoom', (room) => {
             const netColor = netFlow >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
             const netSign = netFlow > 0 ? '+' : '';
 
-            // 세련된 가로 정렬 UI 적용
             document.getElementById('myCompany').innerHTML = `
                 <div class="cash-box">
                     <div style="color:var(--text-sub); font-size:1rem; text-align:left; margin-bottom:5px;">💰 보유 현금</div>
@@ -99,7 +98,6 @@ socket.on('updateRoom', (room) => {
                 </div>
             `;
 
-            // 작전 버튼 가격 업데이트 (가로 바 형태에 맞춤)
             document.getElementById('advertiseBtn').querySelector('.cost').innerText = `(${(adCost/10000).toLocaleString()}만)`;
             document.getElementById('hireBtn').querySelector('.cost').innerText = `(${(hireCost/10000).toLocaleString()}만)`;
 
@@ -108,17 +106,32 @@ socket.on('updateRoom', (room) => {
             } else {
                 actionBtnIds.forEach(id => { const btn = document.getElementById(id); if(btn) {btn.disabled = false;} });
             }
+
+            // ★ 해외진출 쿨다운 실시간 비활성화 및 텍스트 동적 렌더링
+            const fBtn = document.getElementById('foreignBtn');
+            if (fBtn) {
+                const fCost = fBtn.querySelector('.cost');
+                if (me.foreignCooldown > 0) {
+                    fBtn.disabled = true;
+                    fBtn.style.opacity = "0.3";
+                    if (fCost) fCost.innerText = `(${me.foreignCooldown}턴 대기)`;
+                } else {
+                    if (me.actionsLeft > 0 && !me.bankrupt) {
+                        fBtn.disabled = false;
+                        fBtn.style.opacity = "1";
+                    }
+                    if (fCost) fCost.innerText = `(3,000만)`;
+                }
+            }
         }
     }
 
-    // 경쟁 기업 리스트 (간단한 칩 형태)
     document.getElementById('playersList').innerHTML = Object.values(room.players)
         .filter(p => p.id !== socket.id)
         .map(p => `<div class="player-chip" style="${p.bankrupt ? 'opacity:0.3; text-decoration:line-through; color:var(--accent-red);' : ''}">
             👤 ${p.nickname} ${!p.bankrupt && p.ready && room.status === 'waiting' ? '<span style="color:var(--accent-green);">[준비]</span>' : ''}
         </div>`).join('') || '<span style="color:var(--text-sub);">다른 CEO를 기다리는 중...</span>';
 
-    // 시가총액 순위 (요청하신 대로 랭킹 + 점유율 표시)
     const active = [...Object.values(room.players), ...room.ais].filter(p => !p.bankrupt).sort((a,b) => b.companyValue - a.companyValue);
     const bankrupt = [...Object.values(room.players), ...room.ais].filter(p => p.bankrupt).sort((a,b) => a.companyValue - b.companyValue);
     
@@ -134,7 +147,6 @@ socket.on('updateRoom', (room) => {
         </div>
     `).join('');
 
-    // 터미널 로그 업데이트
     document.getElementById('logList').innerHTML = room.logs.map(l => `<div class="log-item">${l}</div>`).join('');
 });
 
